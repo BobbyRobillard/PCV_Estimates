@@ -1,3 +1,7 @@
-from django.shortcuts import render
+from rest_framework import viewsets
+from .models import Estimate
+from .serializers import EstimateSerializer
 
-# Create your views here.
+class EstimateViewSet(viewsets.ModelViewSet):
+    queryset = Estimate.objects.all()
+    serializer_class = EstimateSerializer
