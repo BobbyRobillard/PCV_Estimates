@@ -1,11 +1,13 @@
 FROM node:20
 
-WORKDIR /app
-
-COPY package*.json ./
+# Copy package files and install dependencies
+COPY package.json package-lock.json ./
 RUN npm install
 
+# Now copy the rest of the frontend code
 COPY . .
 
+# Expose port for Vite dev server
 EXPOSE 5173
-CMD ["npm", "run", "dev", "--", "--host"]
+
+CMD ["npm", "run", "dev"]

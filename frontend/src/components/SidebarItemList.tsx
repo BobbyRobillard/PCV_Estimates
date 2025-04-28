@@ -1,63 +1,39 @@
+// SidebarItemList.tsx — Clean and ID-driven
 import React from 'react';
-
-interface EstimateItem {
-  id: string;
-  canvas_type: string;
-  sub_type: string;
-  isDraft: boolean;
-}
+import { EstimateItem } from '../types/EstimateItem';
 
 interface SidebarItemListProps {
   items: EstimateItem[];
-  currentIndex: number;
-  onSelect: (index: number) => void;
+  activeItemId: string | null;
+  setActiveItemId: (id: string) => void;
   onDelete: (id: string) => void;
-  onAdd: () => void;
 }
 
-const SidebarItemList: React.FC<SidebarItemListProps> = ({
-  items,
-  currentIndex,
-  onSelect,
-  onDelete,
-  onAdd,
-}) => {
+const SidebarItemList: React.FC<SidebarItemListProps> = ({ items, activeItemId, setActiveItemId, onDelete }) => {
   return (
     <div>
-      <h4 className="font-bold mb-2">Estimate Items</h4>
-      {items.map((item, i) => (
-        <div
-          key={item.id}
-          className={`p-2 mb-1 rounded cursor-pointer ${
-            i === currentIndex ? 'bg-blue-100' : 'bg-white'
-          }`}
-          onClick={() => onSelect(i)}
-        >
-          <div className="flex justify-between items-center">
-            <span>
-              {item.canvas_type || 'Untitled'} — {item.sub_type || 'Subtype'}
-              {item.isDraft && (
-                <span className="ml-1 text-xs text-yellow-600">(Draft)</span>
-              )}
-            </span>
+      <h5>Estimate Items</h5>
+      <div className="d-flex flex-column gap-2">
+        {items.map(item => (
+          <div
+            key={item.id}
+            onClick={() => setActiveItemId(item.id)}
+            className={`d-flex justify-between items-center p-2 border rounded ${item.id === activeItemId ? 'bg-primary text-white' : 'bg-white'}`}
+            style={{ cursor: 'pointer' }}
+          >
+            <span>{item.canvas_type || 'Untitled'}</span>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(item.id);
               }}
-              className="text-red-500 text-sm"
+              className="btn btn-sm btn-link text-danger"
             >
               ✕
             </button>
           </div>
-        </div>
-      ))}
-      <button
-        onClick={onAdd}
-        className="mt-2 w-full px-3 py-2 bg-green-600 text-white rounded text-sm"
-      >
-        + Add Another Item
-      </button>
+        ))}
+      </div>
     </div>
   );
 };
