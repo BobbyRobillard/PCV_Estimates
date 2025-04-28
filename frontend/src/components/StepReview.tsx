@@ -1,164 +1,199 @@
+// components/StepReview.tsx
+
 import React from 'react';
+import { EstimateItem } from '../types/EstimateItem';
 
-interface FormData {
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
-  special_requests: string;
-}
-
-interface EstimateItem {
-  canvas_type?: string;
-  sub_type?: string;
-  inspiration_images?: { image_url: string; preference_order: number }[];
-  uploads?: File[];
-}
-
-interface Props {
-  formData: FormData;
+interface StepReviewProps {
   items: EstimateItem[];
-  setFormData: React.Dispatch<React.SetStateAction<FormData>>;
+  formData: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    special_requests: string;
+    text_permission: boolean;
+  };
+  setFormData: React.Dispatch<React.SetStateAction<{
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    special_requests: string;
+    text_permission: boolean;
+  }>>;
   setStep: (step: number) => void;
+  setActiveItemId: (id: string | null) => void;
 }
 
-const StepReview: React.FC<Props> = ({ formData, setFormData, items, setStep }) => {
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+const StepReview: React.FC<StepReviewProps> = ({ items, formData, setFormData, setStep, setActiveItemId }) => {
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type } = e.target as HTMLInputElement;
+    const checked = (e.target as HTMLInputElement).checked;
+
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
-  const handleSubmit = async () => {
-    if (!formData.first_name || !formData.email || items.length === 0) {
-      alert("Please complete the form and add at least one item.");
-      return;
-    }
+  const handleSubmit = () => {
+    console.log('Submitting estimate with items:', items);
+    console.log('Contact info:', formData);
+    // Normally you would POST to backend here!
 
-    const form = new FormData();
-    form.append("first_name", formData.first_name);
-    form.append("last_name", formData.last_name);
-    form.append("email", formData.email);
-    form.append("phone", formData.phone);
-    form.append("special_requests", formData.special_requests);
+    // Reset flow
+    setStep(0);
+    setActiveItemId(null);
+  };
 
-    items.forEach((item, index) => {
-      form.append(`items[${index}][canvas_type]`, item.canvas_type || "");
-      form.append(`items[${index}][sub_type]`, item.sub_type || "");
-      (item.inspiration_images || []).forEach((img, imgIndex) => {
-        form.append(`items[${index}][inspiration_images][${imgIndex}]`, img.image_url);
-      });
-      (item.uploads || []).forEach((file, fileIndex) => {
-        form.append(`items[${index}][uploads][${fileIndex}]`, file);
-      });
-    });
+  const handleAddAnotherItem = () => {
+    setStep(0);
+    setActiveItemId(null);
+  };
 
-    try {
-      const response = await fetch("/api/submit-estimate", {
-        method: "POST",
-        body: form,
-      });
-
-      if (response.ok) {
-        alert("Estimate submitted successfully!");
-      } else {
-        alert("Something went wrong. Try again.");
-      }
-    } catch (err) {
-      alert("Failed to submit: " + err);
-    }
+  const handleEditItem = (id: string) => {
+    setActiveItemId(id);
+    setStep(0); // Go back to Step 0 to edit
   };
 
   return (
-    <div className="container">
-      <h4>Your Estimate Items</h4>
-      <button
-          className="btn btn-outline-primary"
-          onClick={() => setStep(0)}
-        >
+    <div>
+      <h3>Review Your Estimate</h3>
+
+      {/* Estimate Items Section */}
+      <div className="mb-4">
+        <h5>Estimate Items</h5>
+        {items.length === 0 ? (
+          <p>No items added yet.</p>
+        ) : (
+          <ul className="list-group mb-3">
+            {items.map((item) => (
+              <li key={item.id} className="list-group-item">
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <strong>Type:</strong> {item.canvas_type}<br />
+                    <strong>Sub-Types:</strong> {item.sub_types.join(', ')}<br />
+                    {item.hull_subtype && (
+                      <>
+                        <strong>Hull Type:</strong> {item.hull_subtype}<br />
+                      </>
+                    )}
+                    {item.inspiration_images.length > 0 && (
+                      <>
+                        <strong>Inspiration Images:</strong>
+                        <div className="d-flex flex-wrap gap-2 mt-1">
+                          {item.inspiration_images.map((img, idx) => (
+                            <img
+                              key={idx}
+                              src={img.image_url}
+                              alt={`Inspiration ${idx}`}
+                              style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    )}
+                    {item.uploads.length > 0 && (
+                      <>
+                        <strong>Uploaded Files:</strong>
+                        <div className="d-flex flex-wrap mt-1">
+                          {item.uploads.map((upload, idx) => (
+                            <div key={idx} className="text-center" style={{ width: '80px' }}>
+                              <img
+                                src={URL.createObjectURL(upload)}
+                                alt={`Upload ${idx}`}
+                                style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px' }}
+                              />
+                              <div style={{ fontSize: '0.7rem', marginTop: '4px' }}>
+                                {upload.name}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <div>
+                    <button
+                      className="btn btn-sm btn-outline-secondary"
+                      onClick={() => handleEditItem(item.id)}
+                    >
+                      Edit
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <button className="btn btn-outline-primary" onClick={handleAddAnotherItem}>
           + Add Another Item
         </button>
-        <br /><br />
-      {items.map((item, idx) => (
-        <div className="card p-3 mb-3" key={idx}>
-          <strong>Item {idx + 1}: {item.canvas_type?.toUpperCase() || "No Type Selected"}</strong>
-          <p>Subtype: {item.sub_type || "None"}</p>
-          <p>Inspiration Images: {(item.inspiration_images || []).length}</p>
-          <p>Uploads: {(item.uploads || []).length}</p>
-        </div>
-      ))}
+      </div>
 
-      <h4 className="mt-4">Your Contact Info</h4>
-      <div className="row g-3 mb-3">
-        <div className="col-md-6">
-          <label className="form-label">First Name</label>
+      {/* Contact Info Section */}
+      <div className="mb-4">
+        <h5>Contact Info</h5>
+        <div className="mb-3">
           <input
             type="text"
             name="first_name"
+            placeholder="First Name"
             value={formData.first_name}
-            onChange={handleInputChange}
-            className="form-control"
+            onChange={handleChange}
+            className="form-control mb-2"
           />
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">Last Name</label>
           <input
             type="text"
             name="last_name"
+            placeholder="Last Name"
             value={formData.last_name}
-            onChange={handleInputChange}
-            className="form-control"
+            onChange={handleChange}
+            className="form-control mb-2"
           />
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">Email Address</label>
           <input
             type="email"
             name="email"
+            placeholder="Email"
             value={formData.email}
-            onChange={handleInputChange}
-            className="form-control"
+            onChange={handleChange}
+            className="form-control mb-2"
           />
-        </div>
-
-        <div className="col-md-6">
-          <label className="form-label">Phone Number</label>
           <input
-            type="tel"
+            type="text"
             name="phone"
+            placeholder="Phone Number"
             value={formData.phone}
-            onChange={handleInputChange}
-            className="form-control"
+            onChange={handleChange}
+            className="form-control mb-2"
           />
-        </div>
-
-        <div className="col-12">
-          <label className="form-label">Special Requests</label>
           <textarea
             name="special_requests"
+            placeholder="Special Requests (Optional)"
             value={formData.special_requests}
-            onChange={handleInputChange}
-            rows={4}
-            className="form-control"
+            onChange={handleChange}
+            className="form-control mb-2"
           />
+          <div className="form-check mt-2">
+            <input
+              type="checkbox"
+              name="text_permission"
+              checked={formData.text_permission}
+              onChange={handleChange}
+              className="form-check-input"
+              id="textPermission"
+            />
+            <label className="form-check-label" htmlFor="textPermission">
+              Do we have permission to text you about your estimate?
+            </label>
+          </div>
         </div>
       </div>
 
-      <div className="text-end mb-3">
-        <button
-          className="btn btn-outline-primary"
-          onClick={() => setStep(0)}
-        >
-          + Add Another Item
-        </button>
-      </div>
-
-      <div className="text-end">
-        <button className="btn btn-success" onClick={handleSubmit}>
-          Submit Estimate
-        </button>
-      </div>
+      <button className="btn btn-success" onClick={handleSubmit}>
+        Submit Estimate
+      </button>
     </div>
   );
 };

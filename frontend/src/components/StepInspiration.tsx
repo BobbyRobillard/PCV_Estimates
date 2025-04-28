@@ -1,4 +1,6 @@
-import React from 'react';
+// components/StepInspiration.tsx
+
+import React, { useEffect, useState } from 'react';
 import { EstimateItem } from '../types/EstimateItem';
 
 interface StepInspirationProps {
@@ -6,56 +8,81 @@ interface StepInspirationProps {
   updateItem: (updated: EstimateItem) => void;
 }
 
-const sampleImages = [
-  '/inspiration/airboat1.png',
-  '/inspiration/airboat2.png',
-  '/inspiration/airboat3.png',
-  '/inspiration/airboat4.png',
-  '/inspiration/airboat5.png',
-];
+// Preload all matching images using Vite import.meta.glob
+const airboatImages = import.meta.glob('/public/inspiration/airboats/{airboat*,Rudder*}.jpg', { as: 'url' });
+const boatImages = import.meta.glob('/public/inspiration/boats/boat*.jpg', { as: 'url' });
+const digitalImages = import.meta.glob('/public/inspiration/digital/digital*.jpg', { as: 'url' });
 
 const StepInspiration: React.FC<StepInspirationProps> = ({ item, updateItem }) => {
-  const handleSelect = (imageUrl: string) => {
-    let updated = [...(item.inspiration_images || [])];
-    const existingIndex = updated.findIndex(img => img.image_url === imageUrl);
-
-    if (existingIndex !== -1) {
-      updated.splice(existingIndex, 1);
-    } else {
-      if (updated.length >= 5) return;
-      updated.push({ image_url: imageUrl, preference_order: updated.length + 1 });
+  const [availableImages, setAvailableImages] = useState<string[]>([]);
+  const [selectedImages, setSelectedImages] = useState<string[]>(() => {
+    if (item?.inspiration_images?.length > 0) {
+      return item.inspiration_images.map(img => img.image_url);
     }
+    return [];
+  });
+
+  useEffect(() => {
+    let imagesToUse: Record<string, () => Promise<string>> = {};
+
+    switch (item.canvas_type) {
+      case 'Airboat':
+        imagesToUse = airboatImages;
+        break;
+      case 'Boat':
+        imagesToUse = boatImages;
+        break;
+      case 'Digital Graphics':
+        imagesToUse = digitalImages;
+        break;
+      default:
+        imagesToUse = {};
+    }
+
+    const loadImages = async () => {
+      const urls = await Promise.all(
+        Object.values(imagesToUse).map(loadFn => loadFn())
+      );
+      setAvailableImages(urls);
+    };
+
+    loadImages();
+  }, [item.canvas_type]);
+
+  const toggleImageSelection = (imgUrl: string) => {
+    const newSelection = selectedImages.includes(imgUrl)
+      ? selectedImages.filter(url => url !== imgUrl)
+      : [...selectedImages, imgUrl];
+
+    setSelectedImages(newSelection);
+
+    const updated = newSelection.map((url, i) => ({
+      image_url: url,
+      preference_order: i + 1
+    }));
 
     updateItem({ ...item, inspiration_images: updated });
   };
 
-  const getOrder = (imageUrl: string) => {
-    const found = (item.inspiration_images || []).find(img => img.image_url === imageUrl);
-    return found ? found.preference_order : null;
-  };
-
   return (
-    <div className="row g-3">
-      {sampleImages.map((url) => {
-        const order = getOrder(url);
-        return (
+    <div>
+      <h3>Select Inspirations</h3>
+      <div className="d-flex flex-wrap gap-3">
+        {availableImages.map((url, idx) => (
           <div
-            key={url}
-            className="col-6 col-md-4"
-            onClick={() => handleSelect(url)}
-            style={{ cursor: 'pointer' }}
+            key={idx}
+            onClick={() => toggleImageSelection(url)}
+            style={{
+              border: selectedImages.includes(url) ? '3px solid green' : '1px solid #ccc',
+              borderRadius: '6px',
+              padding: '4px',
+              cursor: 'pointer'
+            }}
           >
-            <div className={`card position-relative ${order ? 'border-primary' : 'border-secondary'}`}>
-              <img src={url} className="card-img-top" alt="inspiration" />
-              {order && (
-                <span className="position-absolute top-0 end-0 translate-middle badge rounded-pill bg-primary">
-                  {order}
-                </span>
-              )}
-            </div>
+            <img src={url} style={{ width: '120px', height: '120px', objectFit: 'cover' }} />
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 };
