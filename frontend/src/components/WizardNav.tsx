@@ -4,16 +4,16 @@ import React from 'react';
 
 interface WizardNavProps {
   step: number;
-  onPrevStep: () => void;
   onNextStep: () => void;
+  onPrevStep: () => void;
   canProceed: boolean;
 }
 
-const WizardNav = ({ step, onPrevStep, onNextStep, canProceed }: WizardNavProps) => {
+const WizardNav: React.FC<WizardNavProps> = ({ step, onNextStep, onPrevStep, canProceed }) => {
   return (
-    <div>
+    <div className="d-flex justify-content-between mt-4">
       <button
-        className="btn btn-secondary"
+        className="btn btn-outline-secondary"
         onClick={onPrevStep}
         disabled={step === 0}
       >

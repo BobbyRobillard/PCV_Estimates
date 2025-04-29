@@ -1,35 +1,35 @@
 // StepCanvas.tsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { CanvasType } from '../types/canvasTypes';
-import { EstimateItem } from '../types/EstimateItem';
+import StepHeader from './StepHeader';
 
 interface StepCanvasProps {
-  setSelectedPrimary: (primary: CanvasType) => void;
+  selectedPrimary: CanvasType | null;
+  selectedSubTypes: string[];
+  selectedHullType: string;
+  setSelectedPrimary: (primary: CanvasType | null) => void;
   setSelectedSubTypes: (subs: string[]) => void;
   setSelectedHullType: (hull: string) => void;
   setCanvasComplete: (complete: boolean) => void;
-  currentItem: EstimateItem | null; // <--- NEW
 }
 
 const StepCanvas: React.FC<StepCanvasProps> = ({
+  selectedPrimary,
+  selectedSubTypes,
+  selectedHullType,
   setSelectedPrimary,
   setSelectedSubTypes,
   setSelectedHullType,
-  setCanvasComplete,
-  currentItem
+  setCanvasComplete
 }) => {
-  const [primaryType, setPrimaryType] = useState<CanvasType | null>(null);
-  const [selectedSubTypes, setLocalSubTypes] = useState<string[]>([]);
-  const [hullSubtype, setHullSubtype] = useState<string>('');
-
   const airboatSubTypes = ['Hull Wrap', 'Console Wrap', 'Rudder Wrap', 'Dry Box Wrap'];
   const boatSubTypes = ['Flats Boat Wrap', 'Center Console Wrap', 'Bay Boat Wrap', 'Pontoon Boat Wrap', 'Jon Boat Wrap', 'Other'];
   const digitalSubTypes = ['Logo Design', 'Business Card Design', 'Apparel Design', 'Sticker Design', 'Banner Design'];
   const hullOptions = ['Step Hull', 'Deckover Hull', 'Open Hull'];
 
   const getSubTypesForPrimary = () => {
-    switch (primaryType) {
+    switch (selectedPrimary) {
       case CanvasType.Airboat: return airboatSubTypes;
       case CanvasType.Boat: return boatSubTypes;
       case CanvasType.DigitalGraphics: return digitalSubTypes;
@@ -37,68 +37,50 @@ const StepCanvas: React.FC<StepCanvasProps> = ({
     }
   };
 
-  useEffect(() => {
-    if (currentItem) {
-      setPrimaryType(currentItem.canvas_type);
-      setLocalSubTypes(currentItem.sub_types || []);
-      setHullSubtype(currentItem.hull_subtype || '');
-      setSelectedPrimary(currentItem.canvas_type);
-      setSelectedSubTypes(currentItem.sub_types || []);
-      setSelectedHullType(currentItem.hull_subtype || '');
-    }
-  }, [currentItem, setSelectedPrimary, setSelectedSubTypes, setSelectedHullType]);
-
-  const handlePrimaryTypeSelect = (type: CanvasType) => {
-    setPrimaryType(type);
-    setLocalSubTypes([]);
-    setHullSubtype('');
-    setSelectedPrimary(type);
-  };
-
   const toggleSubType = (subType: string) => {
     const updated = selectedSubTypes.includes(subType)
       ? selectedSubTypes.filter(st => st !== subType)
       : [...selectedSubTypes, subType];
 
-    setLocalSubTypes(updated);
     setSelectedSubTypes(updated);
   };
 
-  const handleHullTypeSelect = (hull: string) => {
-    setHullSubtype(hull);
-    setSelectedHullType(hull);
-  };
-
+  // Auto-check if canvas step can proceed
   useEffect(() => {
     let complete = false;
-
-    if (primaryType && selectedSubTypes.length > 0) {
+    if (selectedPrimary && selectedSubTypes.length > 0) {
       if (selectedSubTypes.includes('Hull Wrap')) {
-        complete = hullSubtype.trim().length > 0;
+        complete = selectedHullType.trim().length > 0;
       } else {
         complete = true;
       }
     }
-
     setCanvasComplete(complete);
-  }, [primaryType, selectedSubTypes, hullSubtype, setCanvasComplete]);
+  }, [selectedPrimary, selectedSubTypes, selectedHullType, setCanvasComplete]);
+
+  const handlePrimaryTypeChange = (type: CanvasType) => {
+    setSelectedPrimary(type);
+    setSelectedSubTypes([]);     // 💥 Clear sub-types when switching types
+    setSelectedHullType('');      // 💥 Clear hull type when switching types
+  };
 
   return (
     <div>
+      <StepHeader step={1} title="Select Your Canvas" />
       <h3>Select Primary Type</h3>
       <div className="d-flex flex-wrap gap-2 mb-4">
         {Object.values(CanvasType).map(type => (
           <button
             key={type}
-            className={`btn ${primaryType === type ? 'btn-primary' : 'btn-outline-primary'}`}
-            onClick={() => handlePrimaryTypeSelect(type)}
+            className={`btn ${selectedPrimary === type ? 'btn-primary' : 'btn-outline-primary'}`}
+            onClick={() => handlePrimaryTypeChange(type)}
           >
             {type}
           </button>
         ))}
       </div>
 
-      {primaryType && (
+      {selectedPrimary && (
         <>
           <h4>Select Sub-Types</h4>
           <div className="d-flex flex-wrap gap-2 mb-4">
@@ -120,8 +102,8 @@ const StepCanvas: React.FC<StepCanvasProps> = ({
                 {hullOptions.map(hull => (
                   <button
                     key={hull}
-                    className={`btn ${hullSubtype === hull ? 'btn-info' : 'btn-outline-info'}`}
-                    onClick={() => handleHullTypeSelect(hull)}
+                    className={`btn ${selectedHullType === hull ? 'btn-info' : 'btn-outline-info'}`}
+                    onClick={() => setSelectedHullType(hull)}
                   >
                     {hull}
                   </button>

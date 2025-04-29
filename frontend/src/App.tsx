@@ -1,12 +1,13 @@
 // App.tsx
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import StepCanvas from './components/StepCanvas';
 import StepInspiration from './components/StepInspiration';
 import StepUpload from './components/StepUpload';
 import StepReview from './components/StepReview';
 import SidebarItemList from './components/SidebarItemList';
 import WizardNav from './components/WizardNav';
+import RefreshWarningBanner from './components/RefreshWarningBanner';
 import { EstimateItem } from './types/EstimateItem';
 import { CanvasType } from './types/canvasTypes';
 
@@ -20,14 +21,7 @@ const App: React.FC = () => {
   const [selectedHullType, setSelectedHullType] = useState<string>('');
   const [canvasComplete, setCanvasComplete] = useState(false);
 
-  const [formData, setFormData] = useState<{
-    first_name: string;
-    last_name: string;
-    email: string;
-    phone: string;
-    special_requests: string;
-    text_permission: boolean;
-  }>({
+  const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
     email: '',
@@ -38,30 +32,47 @@ const App: React.FC = () => {
 
   const activeItem = items.find((item) => item.id === activeItemId) || null;
 
+  useEffect(() => {
+    if (step === 0 && activeItem) {
+      setSelectedPrimary(activeItem.canvas_type);
+      setSelectedSubTypes(activeItem.sub_types);
+      setSelectedHullType(activeItem.hull_subtype || '');
+      setCanvasComplete(true);
+    } else if (step === 0 && !activeItemId) {
+      setSelectedPrimary(null);
+      setSelectedSubTypes([]);
+      setSelectedHullType('');
+      setCanvasComplete(false);
+    }
+  }, [activeItem, activeItemId, step]);
+
   const handleNextStep = () => {
-    if (step === 0 && selectedPrimary && selectedSubTypes.length > 0) {
+    if (step === 0) {
+      if (!selectedPrimary || selectedSubTypes.length === 0) return;
+
+      const hullValue = selectedSubTypes.includes('Hull Wrap') ? selectedHullType : '';
+
       if (activeItemId) {
-        // Edit existing item
-        setItems(prev => prev.map(item =>
-          item.id === activeItemId
-            ? { ...item, canvas_type: selectedPrimary, sub_types: selectedSubTypes, hull_subtype: selectedHullType }
-            : item
-        ));
-        console.log('Edited existing item');
+        const updatedItem: EstimateItem = {
+          ...activeItem!,
+          canvas_type: selectedPrimary,
+          sub_types: selectedSubTypes,
+          hull_subtype: hullValue
+        };
+        updateActiveItem(updatedItem);
       } else {
-        // Create new item
         const newItem: EstimateItem = {
           id: crypto.randomUUID(),
           canvas_type: selectedPrimary,
           sub_types: selectedSubTypes,
-          hull_subtype: selectedHullType,
+          hull_subtype: hullValue,
           inspiration_images: [],
           uploads: [],
           isDraft: true
         };
         setItems(prev => [...prev, newItem]);
         setActiveItemId(newItem.id);
-        console.log('New item created');
+        setSelectedHullType('');
       }
     }
 
@@ -73,29 +84,62 @@ const App: React.FC = () => {
   };
 
   const updateActiveItem = (updated: EstimateItem) => {
-    setItems((prev) => prev.map((item) => item.id === updated.id ? updated : item));
+    setItems(prev => prev.map((item) => item.id === updated.id ? updated : item));
   };
 
   const deleteItem = (id: string) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
-    if (id === activeItemId) {
-      setActiveItemId(null);
-      setStep(0);
-    }
+    setItems(prev => {
+      const updated = prev.filter(item => item.id !== id);
+
+      if (updated.length === 0) {
+        setStep(0);
+        setActiveItemId(null);
+      } else {
+        if (id === activeItemId) {
+          setActiveItemId(null);
+        }
+      }
+
+      return updated;
+    });
   };
+
+  // Show native browser warning
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (items.length > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [items]);
 
   return (
     <div className="container-fluid">
+      {items.length > 0 && (
+        <div className="row">
+          <div className="col-12">
+            <RefreshWarningBanner />
+          </div>
+        </div>
+      )}
+
       <div className="row">
-        {/* LEFT SIDE */}
         <div className={`${step === 3 ? 'col-12' : 'col-md-9'} p-4`}>
           {step === 0 && (
             <StepCanvas
+              selectedPrimary={selectedPrimary}
+              selectedSubTypes={selectedSubTypes}
+              selectedHullType={selectedHullType}
               setSelectedPrimary={setSelectedPrimary}
               setSelectedSubTypes={setSelectedSubTypes}
               setSelectedHullType={setSelectedHullType}
               setCanvasComplete={setCanvasComplete}
-              currentItem={activeItem}
             />
           )}
           {step === 1 && activeItem && (
@@ -117,6 +161,7 @@ const App: React.FC = () => {
               setFormData={setFormData}
               setStep={setStep}
               setActiveItemId={setActiveItemId}
+              deleteItem={deleteItem}
             />
           )}
 
@@ -130,7 +175,6 @@ const App: React.FC = () => {
           )}
         </div>
 
-        {/* RIGHT SIDE */}
         {step < 3 && (
           <div className="col-md-3 p-3 border-start bg-light">
             <SidebarItemList
