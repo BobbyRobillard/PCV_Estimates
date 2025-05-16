@@ -1,24 +1,21 @@
-// RefreshWarningBanner.tsx
 
-import React, { useState } from 'react';
+import React, { useEffect } from 'react'
 
-const RefreshWarningBanner: React.FC = () => {
-  const [dismissed, setDismissed] = useState(false);
-
-  if (dismissed) return null;
+export default function RefreshWarningBanner() {
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => {
+      window.removeEventListener('beforeunload', handler)
+    }
+  }, [])
 
   return (
-    <div className="alert alert-warning d-flex justify-content-between align-items-center" role="alert">
-      <div>
-        <strong>⚠️ Don't refresh the page!</strong> You'll lose your current estimate.
-      </div>
-      <button
-        className="btn-close"
-        onClick={() => setDismissed(true)}
-        aria-label="Close"
-      />
+    <div style={{ background: 'red', color: 'white', padding: 10, textAlign: 'center' }}>
+      Don’t refresh or close this tab — your progress may be lost!
     </div>
-  );
-};
-
-export default RefreshWarningBanner;
+  )
+}

@@ -1,33 +1,38 @@
-// WizardNav.tsx
 
-import React from 'react';
+import React from 'react'
+import { useEstimateStore } from '../store/EstimateStore'
 
-interface WizardNavProps {
-  step: number;
-  onNextStep: () => void;
-  onPrevStep: () => void;
-  canProceed: boolean;
-}
+const stepLabels = [
+  'Canvas',
+  'Inspiration',
+  'Upload',
+  'Purpose',
+  'Level',
+  'Install',
+  'Requests',
+  'Review',
+]
 
-const WizardNav: React.FC<WizardNavProps> = ({ step, onNextStep, onPrevStep, canProceed }) => {
+export default function WizardNav() {
+  const { currentStep, goToStep } = useEstimateStore()
+
   return (
-    <div className="d-flex justify-content-between mt-4">
-      <button
-        className="btn btn-outline-secondary"
-        onClick={onPrevStep}
-        disabled={step === 0}
-      >
-        Back
-      </button>
-      <button
-        className="btn btn-primary"
-        onClick={onNextStep}
-        disabled={!canProceed}
-      >
-        Next
-      </button>
+    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: 20 }}>
+      {stepLabels.map((label, index) => (
+        <button
+          key={label}
+          style={{
+            backgroundColor: currentStep === index ? '#444' : '#ccc',
+            color: currentStep === index ? 'white' : 'black',
+            padding: '8px 12px',
+            borderRadius: '6px',
+            cursor: 'pointer'
+          }}
+          onClick={() => goToStep(index)}
+        >
+          {label}
+        </button>
+      ))}
     </div>
-  );
-};
-
-export default WizardNav;
+  )
+}
