@@ -22,6 +22,8 @@ export default function StepSpecialRequests() {
     goToStep(currentStep + 1)
   }
 
+  const subfolder = currentItem.mainType === 'Power Boats' ? 'boats' : 'airboats'
+
   return (
     <div>
       <StepHeader
@@ -35,7 +37,7 @@ export default function StepSpecialRequests() {
           {(currentItem.inspirationIds || []).map((id, i) => (
             <img
               key={i}
-              src={`/inspiration/airboats/${id}`}
+              src={`/inspiration/${subfolder}/${id}`}
               alt={id}
               style={{ width: 120, height: 100, objectFit: 'cover', borderRadius: 4 }}
             />

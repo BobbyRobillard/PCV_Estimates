@@ -41,7 +41,7 @@ export default function App() {
   return (
     <div style={{ padding: 20 }}>
       <RefreshWarningBanner />
-      <StepTracker />
+       {currentStep < 7 && <StepTracker />}  {/* ← Only show tracker before Review */}
       <div style={{
         display: 'flex',
         flexDirection: 'row',

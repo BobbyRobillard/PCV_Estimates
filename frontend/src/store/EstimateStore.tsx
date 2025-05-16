@@ -45,14 +45,17 @@ export const useEstimateStore = create<EstimateStore>((set, get) => ({
       inspirationIds: [],
       uploadedImages: [],
     }
-    set({ currentItem: newItem, editingItemId: null })
+    set({
+      currentItem: newItem,
+      editingItemId: null,
+      currentStep: 0
+    })
   },
 
   updateCurrentItem: (fields) => {
     set((state) => {
       const updated = state.currentItem ? { ...state.currentItem, ...fields } : null
 
-      // If editing, sync the item back into the list
       let updatedItems = [...state.items]
       if (updated && state.editingItemId) {
         updatedItems = updatedItems.map(item =>
@@ -96,7 +99,14 @@ export const useEstimateStore = create<EstimateStore>((set, get) => ({
 
   deleteItem: (id) => {
     const { items } = get()
-    set({ items: items.filter((item) => item.id !== id) })
+    const updatedItems = items.filter((item) => item.id !== id)
+
+    set({
+      items: updatedItems,
+      currentItem: updatedItems.length === 0 ? null : get().currentItem,
+      editingItemId: updatedItems.length === 0 ? null : get().editingItemId,
+      currentStep: updatedItems.length === 0 ? 0 : get().currentStep
+    })
   },
 
   goToStep: (step) => {

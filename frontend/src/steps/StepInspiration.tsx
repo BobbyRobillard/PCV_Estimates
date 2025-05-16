@@ -1,24 +1,35 @@
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import StepTracker from '../components/StepTracker'
 import StepHeader from '../components/StepHeader'
 import StepControls from '../components/StepControls'
 import { useEstimateStore } from '../store/EstimateStore'
 
-const imageGlob = import.meta.glob('/public/inspiration/airboats/*.{jpg,jpeg,png}', { eager: true, as: 'url' })
+const allImages = import.meta.glob('/public/inspiration/**/*.{jpg,jpeg,png}', { eager: true, as: 'url' })
 
 export default function StepInspiration() {
   const { currentItem, updateCurrentItem } = useEstimateStore()
+  const [selected, setSelected] = useState<string[]>(currentItem?.inspirationIds || [])
+
+  useEffect(() => {
+    updateCurrentItem({ inspirationIds: selected })
+  }, [selected])
 
   if (!currentItem) return null
 
-  const handleToggle = (id: string) => {
-    const current = currentItem.inspirationIds || []
-    const exists = current.includes(id)
-    let updated = exists ? current.filter(i => i !== id) : [...current, id]
-    if (updated.length > 5) return
-    updateCurrentItem({ inspirationIds: updated })
+  const toggleImage = (img: string) => {
+    let updated
+    if (selected.includes(img)) {
+      updated = selected.filter(i => i !== img)
+    } else if (selected.length < 5) {
+      updated = [...selected, img]
+    } else {
+      return
+    }
+    setSelected(updated)
   }
+
+  const subfolder = currentItem.mainType === 'Power Boats' ? 'boats' : 'airboats'
 
   return (
     <div>
@@ -30,57 +41,41 @@ export default function StepInspiration() {
 
       <StepControls />
 
+
       <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: 12,
-        marginTop: 10,
-        marginBottom: 16
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+        gap: '12px'
       }}>
-        {Object.entries(imageGlob).map(([path, url]) => {
-          const filename = path.split('/').pop() || ''
-          const isSelected = currentItem.inspirationIds?.includes(filename)
+        {Object.entries(allImages).filter(([path]) => path.includes(`/inspiration/${subfolder}/`)).map(([path, url]) => {
+          const fileName = path.split('/').pop()
+          const isSelected = selected.includes(fileName)
+
           return (
             <div
-              key={filename}
-              onClick={() => handleToggle(filename)}
+              key={path}
+              onClick={() => toggleImage(fileName)}
               style={{
-                width: 160,
-                height: 120,
-                border: isSelected ? '3px solid #0070f3' : '1px solid #ccc',
-                borderRadius: 6,
-                overflow: 'hidden',
                 cursor: 'pointer',
-                position: 'relative'
+                border: isSelected ? '3px solid #0070f3' : '1px solid #ccc',
+                borderRadius: 4,
+                overflow: 'hidden',
+                height: 150,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: '#fafafa'
               }}
             >
               <img
                 src={url}
-                alt={filename}
+                alt={fileName}
                 style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover',
-                  filter: isSelected ? 'none' : 'grayscale(40%)',
-                  transition: '0.2s ease'
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  objectFit: 'cover'
                 }}
               />
-              {isSelected && (
-                <div style={{
-                  position: 'absolute',
-                  top: 4,
-                  right: 4,
-                  backgroundColor: '#0070f3',
-                  color: 'white',
-                  borderRadius: '50%',
-                  width: 20,
-                  height: 20,
-                  fontSize: 14,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>✓</div>
-              )}
             </div>
           )
         })}
