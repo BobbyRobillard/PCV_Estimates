@@ -25,8 +25,8 @@ export default function StepControls({ onNext, isNextDisabled = false }: StepCon
   }
 
   return (
-    <div style={{ marginTop: 20, display: 'flex', gap: 10 }}>
-      <button onClick={handleBack} disabled={currentStep === 0}>
+    <div className="text-center">
+      <button onClick={handleBack} disabled={currentStep === 0} style={{ marginRight: '8px' }}>
         Back
       </button>
       <button onClick={handleNext} disabled={isNextDisabled}>

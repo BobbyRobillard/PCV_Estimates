@@ -1,132 +1,67 @@
 
-import React, { useState, useRef } from 'react'
-import StepTracker from '../components/StepTracker'
+import React from 'react'
 import StepHeader from '../components/StepHeader'
 import StepControls from '../components/StepControls'
 import { useEstimateStore } from '../store/EstimateStore'
 
-const MAX_FILES = 3
-const MAX_FILE_SIZE_MB = 50
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp']
-
 export default function StepUpload() {
-  const { currentItem, updateCurrentItem } = useEstimateStore()
-  const [errors, setErrors] = useState<string[]>([])
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const { currentItem, updateCurrentItem, goToStep, currentStep } = useEstimateStore()
 
   if (!currentItem) return null
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newFiles = Array.from(e.target.files || [])
-    const existing = currentItem.uploadedImages || []
+  const handleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    const valid = files.filter(f => f.size <= 50 * 1024 * 1024).slice(0, 3)
 
-    const all = [...existing, ...newFiles].slice(0, MAX_FILES)
+    const uploads = valid.map(file => ({
+      file,
+      previewUrl: URL.createObjectURL(file)
+    }))
 
-    const valid: File[] = []
-    const messages: string[] = []
-
-    all.forEach(file => {
-      if (!ALLOWED_TYPES.includes(file.type)) {
-        messages.push(`${file.name}: Unsupported file type.`)
-      } else if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
-        messages.push(`${file.name}: Exceeds 50MB limit.`)
-      } else {
-        valid.push(file)
-      }
-    })
-
-    updateCurrentItem({ uploadedImages: valid })
-    setErrors(messages)
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
+    updateCurrentItem({ uploadedImages: uploads })
   }
 
-  const removeFile = (index: number) => {
-    const updated = [...(currentItem.uploadedImages || [])]
-    updated.splice(index, 1)
-    updateCurrentItem({ uploadedImages: updated })
-  }
+  const handleNext = () => goToStep(currentStep + 1)
+  const handleBack = () => goToStep(currentStep - 1)
 
   return (
-    <div>
+    <div className="text-center">
       <StepHeader
         stepNumber={3}
-        title={"Upload Your Own Images"}
-        subtitle={"Provide up to 3 of your own reference photos. JPG, PNG, or WEBP only — max 50MB each."}
+        title="Upload Inspiration"
+        subtitle="Upload up to 3 images you'd like us to consider."
       />
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".jpg,.jpeg,.png,.webp"
-        multiple
-        onChange={handleFileChange}
-        style={{ marginBottom: 10 }}
-      />
+      <div className="container mt-4 mb-3">
+        <input
+          type="file"
+          multiple
+          accept="image/*"
+          onChange={handleFiles}
+          className="form-control mb-3"
+        />
 
-      {errors.length > 0 && (
-        <div style={{ color: 'red', marginBottom: 10 }}>
-          {errors.map((err, i) => <div key={i}>• {err}</div>)}
-        </div>
-      )}
-
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-        {(currentItem.uploadedImages || []).map((file, i) => (
-          <div key={i} style={{
-            width: 160,
-            border: '1px solid #ccc',
-            borderRadius: 6,
-            padding: 8,
-            backgroundColor: '#f9f9f9'
-          }}>
+        <div className="d-flex justify-content-center gap-3 flex-wrap">
+          {currentItem.uploadedImages?.map((img, i) => (
             <img
-              src={URL.createObjectURL(file)}
-              alt={file.name}
+              key={i}
+              src={img.previewUrl}
+              alt={`Upload ${i}`}
               style={{
-                width: '100%',
+                width: 120,
                 height: 100,
                 objectFit: 'cover',
-                borderRadius: 4,
-                marginBottom: 6
+                border: '1px solid #ccc',
+                borderRadius: 4
               }}
             />
-            <div style={{
-              fontSize: '0.85rem',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center'
-            }}>
-              <span
-                style={{
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}
-              >
-                {file.name}
-              </span>
-              <button
-                onClick={() => removeFile(i)}
-                title="Remove"
-                style={{
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  fontSize: 16,
-                  color: 'red',
-                  marginLeft: 4
-                }}
-              >
-                🗑️
-              </button>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      <StepControls />
+      <div className="d-flex justify-content-center gap-3">
+        <StepControls onBack={handleBack} onNext={handleNext} />
+      </div>
     </div>
   )
 }

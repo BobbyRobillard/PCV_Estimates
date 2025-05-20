@@ -1,115 +1,97 @@
-
 import { create } from 'zustand'
 import { nanoid } from 'nanoid'
 
-interface EstimateItem {
+export interface EstimateItem {
   id: string
-  mainType: string
-  subTypes?: string[]
-  hullType?: string
-  inspirationIds?: string[]
-  uploadedImages?: File[]
-  wrapPurpose?: string
-  wrapLevel?: string
-  installPlan?: string
-  shippingToPainterChic?: boolean
-  installState?: string
-  installCity?: string
-  specialNotes?: string
+  canvasType: string
+  subTypes: string[]
+  inspirationImages: string[]
+  uploadedImages: File[]
+  specialRequests?: string
 }
 
-interface EstimateStore {
+interface EstimateState {
   items: EstimateItem[]
   currentItem: EstimateItem | null
-  currentStep: number
   editingItemId: string | null
-  startNewItem: (mainType: string) => void
-  updateCurrentItem: (fields: Partial<EstimateItem>) => void
-  addItem: () => void
+  currentStep: number
+
+  goToStep: (step: number) => void
+  startNewItem: () => void
   editItem: (id: string) => void
   deleteItem: (id: string) => void
-  goToStep: (step: number) => void
+  resetEstimate: () => void
+  updateCurrentItem: (patch: Partial<EstimateItem>) => void
+  finalizeCurrentItem: () => void
 }
 
-export const useEstimateStore = create<EstimateStore>((set, get) => ({
+export const useEstimateStore = create<EstimateState>((set, get) => ({
   items: [],
   currentItem: null,
-  currentStep: 0,
   editingItemId: null,
+  currentStep: 0,
 
-  startNewItem: (mainType) => {
-    const newItem: EstimateItem = {
-      id: nanoid(),
-      mainType,
-      subTypes: [],
-      inspirationIds: [],
-      uploadedImages: [],
-    }
+  goToStep: (step) => set({ currentStep: step }),
+
+  startNewItem: () =>
     set({
-      currentItem: newItem,
+      currentItem: {
+        id: nanoid(),
+        canvasType: '',
+        subTypes: [],
+        inspirationImages: [],
+        uploadedImages: []
+      },
       editingItemId: null,
       currentStep: 0
-    })
-  },
-
-  updateCurrentItem: (fields) => {
-    set((state) => {
-      const updated = state.currentItem ? { ...state.currentItem, ...fields } : null
-
-      let updatedItems = [...state.items]
-      if (updated && state.editingItemId) {
-        updatedItems = updatedItems.map(item =>
-          item.id === state.editingItemId ? updated : item
-        )
-      }
-
-      return {
-        currentItem: updated,
-        items: updatedItems
-      }
-    })
-  },
-
-  addItem: () => {
-    const { currentItem, items, editingItemId } = get()
-    if (!currentItem) return
-    let updatedItems = [...items]
-    if (editingItemId) {
-      updatedItems = items.map(item => item.id === editingItemId ? currentItem : item)
-    } else {
-      updatedItems.push(currentItem)
-    }
-    set({
-      items: updatedItems,
-      currentItem: null,
-      editingItemId: null,
-    })
-  },
+    }),
 
   editItem: (id) => {
-    const { items } = get()
-    const match = items.find((item) => item.id === id)
-    if (!match) return
+    const item = get().items.find(i => i.id === id)
+    if (item) {
+      set({
+        currentItem: { ...item },
+        editingItemId: id,
+        currentStep: 0
+      })
+    }
+  },
+
+  deleteItem: (id) =>
     set({
-      currentItem: { ...match },
-      editingItemId: id,
+      items: get().items.filter(item => item.id !== id),
+      currentItem: null,
+      editingItemId: null
+    }),
+
+  resetEstimate: () =>
+    set({
+      items: [],
+      currentItem: null,
+      editingItemId: null,
       currentStep: 0
-    })
-  },
+    }),
 
-  deleteItem: (id) => {
-    const { items } = get()
-    const updatedItems = items.filter((item) => item.id !== id)
+  updateCurrentItem: (patch) =>
+    set(state => ({
+      currentItem: state.currentItem
+        ? { ...state.currentItem, ...patch }
+        : state.currentItem
+    })),
 
-    set({
-      items: updatedItems,
-      currentItem: updatedItems.length === 0 ? null : get().currentItem,
-      editingItemId: updatedItems.length === 0 ? null : get().editingItemId,
-      currentStep: updatedItems.length === 0 ? 0 : get().currentStep
-    })
-  },
+  finalizeCurrentItem: () => {
+    const { currentItem, editingItemId, items } = get()
+    if (!currentItem) return
 
-  goToStep: (step) => {
-    set({ currentStep: step })
+    if (editingItemId) {
+      set({
+        items: items.map(item =>
+          item.id === editingItemId ? currentItem : item
+        ),
+        editingItemId: null
+      })
+    } else {
+      set({ items: [...items, currentItem] })
+    }
   }
 }))

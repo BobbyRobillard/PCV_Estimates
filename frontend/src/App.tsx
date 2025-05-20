@@ -1,11 +1,6 @@
-
 import React, { useEffect } from 'react'
-import { useEstimateStore } from './store/EstimateStore'
-
-import RefreshWarningBanner from './components/RefreshWarningBanner'
 import StepTracker from './components/StepTracker'
 import EstimateSidebar from './components/EstimateSidebar'
-
 import StepCanvas from './steps/StepCanvas'
 import StepInspiration from './steps/StepInspiration'
 import StepUpload from './steps/StepUpload'
@@ -14,15 +9,27 @@ import StepLevel from './steps/StepLevel'
 import StepInstallPlan from './steps/StepInstallPlan'
 import StepSpecialRequests from './steps/StepSpecialRequests'
 import StepReview from './steps/StepReview'
+import RefreshWarningBanner from './components/RefreshWarningBanner'
+import { useEstimateStore } from './store/EstimateStore'
+
+// Start on first step (index 0)
+const START_STEP = 0
 
 export default function App() {
-  const { currentItem, items, currentStep, startNewItem } = useEstimateStore()
+  const {
+    items,
+    currentStep,
+    currentItem,
+    startNewItem,
+    goToStep
+  } = useEstimateStore()
 
   useEffect(() => {
     if (!currentItem && items.length === 0) {
-      startNewItem('Airboats')
+      startNewItem()
+      goToStep(START_STEP)
     }
-  }, [currentItem, items])
+  }, [])
 
   const renderStep = () => {
     switch (currentStep) {
@@ -34,25 +41,22 @@ export default function App() {
       case 5: return <StepInstallPlan />
       case 6: return <StepSpecialRequests />
       case 7: return <StepReview />
-      default: return <div>Invalid Step</div>
+      default: return <StepCanvas />
     }
   }
 
   return (
-    <div style={{ padding: 20 }}>
+    <div className="container mt-4">
       <RefreshWarningBanner />
-       {currentStep < 7 && <StepTracker />}  {/* ← Only show tracker before Review */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: '2rem'
-      }}>
-        <div style={{ flex: 1 }}>
+      <div className="row">
+        <div className="col-lg-8 col-md-12 mb-4">
+          {currentStep < 8 && <StepTracker />}
+          <br />
           {renderStep()}
         </div>
+        {/* Hide sidebar on the review step (index 7) */}
         {currentStep < 7 && (
-          <div style={{ minWidth: 300 }}>
+          <div className="col-lg-4 col-md-12">
             <EstimateSidebar />
           </div>
         )}

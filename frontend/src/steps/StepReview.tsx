@@ -115,8 +115,6 @@ export default function StepReview() {
           </div>
         </div>
       )}
-
-      <StepControls />
     </div>
   )
 }

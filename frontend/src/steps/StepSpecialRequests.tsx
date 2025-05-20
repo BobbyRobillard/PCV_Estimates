@@ -1,77 +1,92 @@
 
-import React, { useState } from 'react'
+import React from 'react'
 import StepHeader from '../components/StepHeader'
 import StepControls from '../components/StepControls'
 import { useEstimateStore } from '../store/EstimateStore'
 
 export default function StepSpecialRequests() {
-  const { currentItem, updateCurrentItem, addItem, goToStep, currentStep } = useEstimateStore()
-  const [text, setText] = useState(currentItem?.specialNotes || '')
-  const [error, setError] = useState<string | null>(null)
+  const {
+    currentItem,
+    updateCurrentItem,
+    goToStep,
+    currentStep,
+    finalizeCurrentItem
+  } = useEstimateStore()
 
   if (!currentItem) return null
 
-  const handleNext = () => {
-    if (!text.trim()) {
-      setError('Please enter your notes before continuing.')
-      return
-    }
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    updateCurrentItem({ specialRequests: e.target.value })
+  }
 
-    updateCurrentItem({ specialNotes: text })
-    addItem()
+  const handleNext = () => {
+    finalizeCurrentItem()
     goToStep(currentStep + 1)
   }
 
-  const subfolder = currentItem.mainType === 'Power Boats' ? 'boats' : 'airboats'
+  const handleBack = () => goToStep(currentStep - 1)
 
   return (
-    <div>
+    <div className="text-center">
       <StepHeader
         stepNumber={7}
-        title={"Tell Us What You Liked"}
-        subtitle={"You selected some images earlier — what stood out to you about them?"}
+        title="Any Special Requests?"
+        subtitle="Let us know what stood out to you from the inspiration images or uploads."
       />
 
-      {(currentItem.inspirationIds?.length > 0 || currentItem.uploadedImages?.length > 0) && (
-        <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-          {(currentItem.inspirationIds || []).map((id, i) => (
-            <img
-              key={i}
-              src={`/inspiration/${subfolder}/${id}`}
-              alt={id}
-              style={{ width: 120, height: 100, objectFit: 'cover', borderRadius: 4 }}
-            />
-          ))}
-          {(currentItem.uploadedImages || []).map((file, i) => (
-            <img
-              key={i}
-              src={URL.createObjectURL(file)}
-              alt={file.name}
-              style={{ width: 120, height: 100, objectFit: 'cover', borderRadius: 4 }}
-            />
-          ))}
+      <div className="container mt-4">
+        {currentItem.inspirationImages?.length > 0 && (
+          <div className="d-flex flex-wrap justify-content-center gap-3 mb-4">
+            {currentItem.inspirationImages.map((img, i) => (
+              <img
+                key={i}
+                src={img}
+                alt={`Inspiration ${i}`}
+                style={{
+                  width: 120,
+                  height: 100,
+                  objectFit: 'cover',
+                  borderRadius: 4,
+                  border: '1px solid #ccc'
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        {currentItem.uploadedImages?.length > 0 && (
+          <div className="d-flex flex-wrap justify-content-center gap-3 mb-4">
+            {currentItem.uploadedImages.map((fileObj, i) => (
+              <img
+                key={i}
+                src={fileObj.previewUrl}
+                alt={`Uploaded ${i}`}
+                style={{
+                  width: 120,
+                  height: 100,
+                  objectFit: 'cover',
+                  borderRadius: 4,
+                  border: '1px solid #ccc'
+                }}
+              />
+            ))}
+          </div>
+        )}
+
+        <div className="mb-4 mt-4">
+          <textarea
+            className="form-control"
+            rows={5}
+            value={currentItem.specialRequests || ''}
+            onChange={handleChange}
+            placeholder="Write any details you'd like us to know..."
+          />
         </div>
-      )}
 
-      <textarea
-        rows={6}
-        value={text}
-        onChange={(e) => {
-          setText(e.target.value)
-          if (error) setError(null)
-        }}
-        style={{
-          width: '100%',
-          padding: 10,
-          borderRadius: 4,
-          border: '1px solid #ccc',
-          fontSize: '1rem'
-        }}
-      />
-
-      {error && <div style={{ color: 'red', marginTop: 8 }}>{error}</div>}
-
-      <StepControls onNext={handleNext} />
+        <div className="d-flex justify-content-center gap-3 mt-4">
+          <StepControls onBack={handleBack} onNext={handleNext} />
+        </div>
+      </div>
     </div>
   )
 }
